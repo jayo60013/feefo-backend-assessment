@@ -20,28 +20,33 @@ public class JobTitleNormaliserServiceImpl implements JobTitleNormaliserService 
                 .orElse(null);
     }
 
+    // Take two strings and calculate the Levenshtein distance between them
+    // The more similar the strings, the lower the score
     private static int calculateLevenshteinDistance(
             final String lhs, final String rhs
     ) {
-        final int[][] dp = new int[lhs.length() + 1][rhs.length() + 1];
+        // store intermediate results in a lookup table for later use
+        // [i][j] will store the distance between lhs[:i] and rhs[:j]
+        final int[][] lookupTable = new int[lhs.length() + 1][rhs.length() + 1];
 
         for (int i = 0; i <= lhs.length(); i++) {
             for (int j = 0; j <= rhs.length(); j++) {
                 if (i == 0) {
-                    dp[i][j] = j;
+                    lookupTable[i][j] = j;
                 } else if (j == 0) {
-                    dp[i][j] = i;
+                    lookupTable[i][j] = i;
                 } else {
-                    final int substitutionCost = costOfSubstitution(lhs.charAt(i - 1), rhs.charAt(j - 1));
-                    dp[i][j] = min(
-                            dp[i - 1][j - 1] + substitutionCost,
-                            dp[i - 1][j] + 1,
-                            dp[i][j - 1] + 1
+                    final int substitution = lookupTable[i - 1][j - 1]
+                            + costOfSubstitution(lhs.charAt(i - 1), rhs.charAt(j - 1));
+                    final int insertion = lookupTable[i - 1][j] + 1;
+                    final int deletion = lookupTable[i][j - 1] + 1;
+                    lookupTable[i][j] = min(
+                            substitution, insertion, deletion
                     );
                 }
             }
         }
-        return dp[lhs.length()][rhs.length()];
+        return lookupTable[lhs.length()][rhs.length()];
     }
 
     private static int costOfSubstitution(final char a, final char b) {
